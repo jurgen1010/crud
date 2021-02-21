@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from "react"; 
 import { isEmpty, size } from "lodash";
-import React, { useState } from "react"; 
-import shortid from "shortid";
+import { addDocument, deleteDocument, getCollection, updateDocument } from "./actions";
 
 function App() {
   /** Parecido al concepto de encapsulamiento useState*/
@@ -10,6 +10,21 @@ function App() {
   const[editMode, setEditMode] = useState(false) //Con el fin de cambiar el modo de edicion al presionar el boton editar, inicia en false ya que la pagina normalmente esta en modo creacion tareas
   const [id, setId] = useState("")// Con el fin de guardar el id de la tarea que estoy moficando 
   const [error, setError] = useState(null)
+
+  /**
+   * Este metodo se ejecutara cuando la pagina cargue,
+   * sera un metodo asincrono, es decir se ejecutara asi mismo(autoejecutable)
+   * Finalmente consumimos nuestra getCollection 
+   * ()() para que se ejecute automaticamente
+   */
+  useEffect(() => {
+     (async ()=> {
+       const result = await getCollection("tasks")
+       if (result.statusResponse) {
+         setTasks(result.data) //Para poder pintar las tareas que traemos desde nuestra db, result.data porque es alli donde guardamos el resultado
+       }
+     })() 
+  }, [])
   
   const validForm = () =>{ //Metodo para validar que si se este enviando o editando una tarea
     let isValid = true
@@ -19,37 +34,44 @@ function App() {
       setError("Debes ingresar una tarea.")
       isValid = false
     }
-
     return isValid
-    
   }
 
-  const addTask = (e) =>{
+  const addTask = async(e) =>{
     //Validamos que el user haya ingreado algo en la tarea.
     e.preventDefault() //para evitar que nos recargue la pagina por el submit.
 
     if (!validForm()) {
       return
     }
-
-    const newTask = { //Creo un objeto para guardar tareas con un id dinamico
-      id : shortid.generate(),
-      name : task
+    
+    /**Agregamos la tarea a nuestra db */
+    const result = await addDocument("tasks", { name: task })
+    if (!result.statusResponse) {
+      setError(result.error)
+      return
     }
 
-    setTasks([...tasks, newTask])//Hacemos uso del Spread Operator para no solo guardar la ultima tarea sino tambien las anteriores
+    setTasks([...tasks, {id: result.data.id, name: task}])//Hacemos uso del Spread Operator para adicionar a las tareas creadas, la nueva tarea y poder mostrarlas en pantalla
     
     setTask("") //Dejamos nuevamente la vble limpia para agregar una nueva
 
   }
   
-  const saveTask = (e) =>{
+  const saveTask = async(e) =>{
     e.preventDefault() 
 
     if (!validForm()) {
       return
     }
     
+
+    const result = await updateDocument("tasks", id, { name: task })
+    if (!result.statusResponse) {
+      setError(result.error)
+      return
+    }
+
     /**
      * Me devuelve un item, sí el id del item que estamos editando,
      * es igual al que estoy editando, voy a reemplazar ese objeto con el mismo id,
@@ -69,7 +91,15 @@ function App() {
     setId("")
   }
 
-  const deleteTask = (id) => {
+  const deleteTask = async(id) => {
+
+    /**Eliminamos la tarea en la db */
+    const result = await deleteDocument("tasks", id)
+    if (!result.statusResponse) {
+      setError(result.error)
+      return
+    }
+
     const filteredTasks = tasks.filter(task => task.id !== id) //Filtramos nuestra coleccion de tareas para recuperarlas todas menos el id que estoy enviando
     setTasks(filteredTasks)
   }
