@@ -1,21 +1,35 @@
 import { isEmpty, size } from "lodash";
 import React, { useState } from "react"; 
 import shortid from "shortid";
-/* useState, me permitira alamacenar y modificar datos*/
 
 function App() {
-  
+  /** Parecido al concepto de encapsulamiento useState*/
+
   const[task,setTask] = useState("") //Almacena la tarea agregada
   const[tasks,setTasks] = useState([])//Almacena un arreglo de tareas
   const[editMode, setEditMode] = useState(false) //Con el fin de cambiar el modo de edicion al presionar el boton editar, inicia en false ya que la pagina normalmente esta en modo creacion tareas
   const [id, setId] = useState("")// Con el fin de guardar el id de la tarea que estoy moficando 
+  const [error, setError] = useState(null)
+  
+  const validForm = () =>{ //Metodo para validar que si se este enviando o editando una tarea
+    let isValid = true
+    setError(null) //Preguntar a profesor ya esta inicializado desde su declaracion
+
+    if (isEmpty (task)) {
+      setError("Debes ingresar una tarea.")
+      isValid = false
+    }
+
+    return isValid
+    
+  }
 
   const addTask = (e) =>{
     //Validamos que el user haya ingreado algo en la tarea.
     e.preventDefault() //para evitar que nos recargue la pagina por el submit.
-    if (isEmpty (task)) {
-      console.log("Task empty")
-      return //Para salir de la validacion
+
+    if (!validForm()) {
+      return
     }
 
     const newTask = { //Creo un objeto para guardar tareas con un id dinamico
@@ -31,9 +45,9 @@ function App() {
   
   const saveTask = (e) =>{
     e.preventDefault() 
-    if (isEmpty (task)) {
-      console.log("Task empty")
-      return 
+
+    if (!validForm()) {
+      return
     }
     
     /**
@@ -76,7 +90,7 @@ function App() {
           <h4 className="text-center">Lista de Tareas</h4>
           {
             size(tasks) === 0 ? (
-              <h5 className = "text-center">Aun no hay tareas programadas.</h5> //Operador ternario para mostrar mensaje cuando aun no se agg alguna tarea.
+              <li className = "list-group-item">Aun no hay tareas programadas.</li> //Operador ternario para mostrar mensaje cuando aun no se agg alguna tarea.
             ) : (
               <ul className="list-group">
               {
@@ -107,6 +121,9 @@ function App() {
            { editMode ? "Modificar Tarea" : "Agregar Tarea"} {/*Con este operador cambiare el titulo del formario en caso que modoEdit sea true */}
           </h4> 
           <form onSubmit = {editMode ? saveTask : addTask }>
+            {
+              error && <span className ="text-danger mb-2">{error}</span>
+            }
             <input 
             type="text"
             className ="form-control mb-2" /* mb es un margin bottom para que el seiguiente boton no quede tan cerca */
